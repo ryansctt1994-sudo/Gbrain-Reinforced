@@ -20,6 +20,18 @@ GBrain is those patterns, generalized. 34 skills. Install in 30 minutes. Your ag
 
 > **New in v0.32.3.0 — compress your AGENTS.md without losing accuracy:** if your downstream agent fork has grown a 25KB+ `AGENTS.md` / `RESOLVER.md`, the new [`functional-area-resolver`](skills/functional-area-resolver/SKILL.md) skill ships a two-layer dispatch pattern that compresses 25KB → 13KB (48% the size) while **beating** the verbose baseline by +13 to +17pp across Opus 4.7, Sonnet 4.6, and Haiku 4.5. A/B eval harness, cross-model receipts, and reproduction instructions live at [`evals/functional-area-resolver/`](evals/functional-area-resolver/). The static-prompt analog of AnyTool / RAG-MCP / Anthropic Agent Skills progressive disclosure — single-LLM-pass dispatch, no second routing call.
 
+## Orientation
+
+| Document | What it covers |
+|----------|---------------|
+| [AGENTS.md](AGENTS.md) | Install + operating protocol for AI agents |
+| [CLAUDE.md](CLAUDE.md) | Architecture, trust boundary, privacy rules |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup and project structure |
+| [WHAT_THIS_IS.md](WHAT_THIS_IS.md) | Quick one-page orientation |
+| [STRUCTURE.md](STRUCTURE.md) | Complete folder map |
+| [KNOWN_GAPS.md](KNOWN_GAPS.md) | Current open items and review notes |
+
+
 ## Install
 
 ### On an agent platform (recommended)
