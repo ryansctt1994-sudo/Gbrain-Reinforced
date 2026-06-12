@@ -12,11 +12,11 @@ from typing import Any, Dict
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from jose import jwt
 
 KEY_DIR = Path("keys")
 PRIVATE_KEY_FILE = KEY_DIR / "reality_gate_private.b64"
 PUBLIC_KEY_FILE = KEY_DIR / "reality_gate_public.b64"
+TOKEN_HEADER = {"alg": "Ed25519", "typ": "RG1"}
 
 
 def b64url(data: bytes) -> str:
@@ -26,6 +26,10 @@ def b64url(data: bytes) -> str:
 def unb64url(text: str) -> bytes:
     padding = "=" * (-len(text) % 4)
     return base64.urlsafe_b64decode(text + padding)
+
+
+def canonical_json(data: Dict[str, Any]) -> bytes:
+    return json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
 def generate_keys() -> tuple[str, str]:
@@ -54,7 +58,15 @@ def load_private_key(path: Path) -> str:
 
 
 def sign_receipt(private_key_b64: str, claims: Dict[str, Any]) -> str:
-    return jwt.encode(claims, private_key_b64, algorithm="EdDSA")
+    private_raw = unb64url(private_key_b64)
+    if len(private_raw) != 32:
+        raise ValueError("Ed25519 private key must decode to 32 bytes")
+    private_key = Ed25519PrivateKey.from_private_bytes(private_raw)
+    header_b64 = b64url(canonical_json(TOKEN_HEADER))
+    payload_b64 = b64url(canonical_json(claims))
+    signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
+    signature_b64 = b64url(private_key.sign(signing_input))
+    return f"{header_b64}.{payload_b64}.{signature_b64}"
 
 
 def build_claims(subject: str, action: str, budget: int) -> Dict[str, Any]:
@@ -84,7 +96,7 @@ def main() -> None:
         print("Generated Reality Gate Ed25519 keys.")
         print(f"Private key file: {PRIVATE_KEY_FILE}")
         print(f"Public key file:  {PUBLIC_KEY_FILE}")
-        print("\nExport this before running the proxy:")
+        print("\nExport this before running the proxy manually:")
         print(f"export REALITY_GATE_PUBKEY_B64={public_b64}")
         return
 
