@@ -13,11 +13,18 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 python sign_receipt.py --generate-keys-only
-export REALITY_GATE_PUBKEY_B64="paste-public-key-here"
-python proxy.py
+python mock_mcp.py
 ```
 
 In another terminal:
+
+```bash
+export REALITY_GATE_PUBKEY_B64="$(cat keys/reality_gate_public.b64)"
+export UPSTREAM_MCP_URL="http://localhost:5000"
+python proxy.py
+```
+
+Then run:
 
 ```bash
 python chaos_fuzzer.py --target http://localhost:8080
@@ -27,7 +34,7 @@ python chaos_fuzzer.py --target http://localhost:8080
 
 - The fail-closed invariant is preserved.
 - New denial paths are logged.
-- No secrets, private keys, logs, or generated receipts are committed.
+- No secrets, private keys, logs, `.env`, or generated receipts are committed.
 - The chaos fuzzer still reports `GATE INTACT`.
 - README or FAQ is updated when behavior changes.
 
