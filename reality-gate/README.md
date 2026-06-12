@@ -13,11 +13,12 @@ It is intentionally simple: verify first, forward second, fail closed always.
 ## What this project provides
 
 - A FastAPI proxy that validates signed receipts before forwarding requests.
-- Ed25519 signing and verification using Base64URL-safe keys and tokens.
+- Direct Ed25519 signing and verification using Base64URL-safe compact tokens.
 - Explicit fail-closed behavior for malformed, missing, expired, or unverifiable receipts.
 - JSONL audit logging with haiku-flavored denial messages.
 - A receipt signing CLI with key generation.
 - A chaos fuzzer that attacks the proxy with malformed and adversarial requests.
+- A POST-capable mock MCP upstream for local demos.
 - Docker and Docker Compose for one-command local testing.
 
 ## Threat model
@@ -33,20 +34,8 @@ It is useful for local demos, agent gateways, budget boundaries, compliance expe
 ```bash
 git clone https://github.com/ryansctt1994-sudo/Gbrain-Reinforced.git
 cd Gbrain-Reinforced/reality-gate
-chmod +x setup.sh
-./setup.sh
-```
-
-Then export the public key printed by setup:
-
-```bash
-export REALITY_GATE_PUBKEY_B64="paste-public-key-here"
+bash setup.sh
 docker compose up -d
-```
-
-Run the chaos fuzzer:
-
-```bash
 docker compose --profile test run --rm chaos
 ```
 
@@ -56,6 +45,8 @@ Expected result:
 ✅ GATE INTACT – fail-closed held.
 ```
 
+`setup.sh` generates local Ed25519 keys, writes `.env` with `REALITY_GATE_PUBKEY_B64`, and builds the Docker image. The generated `keys/` directory and `.env` file are intentionally ignored by Git.
+
 ## Manual local run
 
 Generate keys:
@@ -64,10 +55,16 @@ Generate keys:
 python sign_receipt.py --generate-keys-only
 ```
 
-Start the proxy:
+Start the mock upstream:
 
 ```bash
-export REALITY_GATE_PUBKEY_B64="paste-public-key-here"
+python mock_mcp.py
+```
+
+Start the proxy in another terminal:
+
+```bash
+export REALITY_GATE_PUBKEY_B64="$(cat keys/reality_gate_public.b64)"
 export UPSTREAM_MCP_URL="http://localhost:5000"
 python proxy.py
 ```
@@ -75,16 +72,22 @@ python proxy.py
 Create a signed receipt:
 
 ```bash
-python sign_receipt.py --private-key-file keys/reality_gate_private.b64 --subject demo-agent --action call_tool --budget 10
+TOKEN=$(python sign_receipt.py --private-key-file keys/reality_gate_private.b64 --subject demo-agent --action call_tool --budget 10)
 ```
 
-Send a request:
+Send a valid request:
 
 ```bash
 curl -X POST http://localhost:8080/mcp \
   -H "Content-Type: application/json" \
-  -H "X-Reality-Receipt: paste-token-here" \
+  -H "X-Reality-Receipt: $TOKEN" \
   -d '{"tool":"demo","args":{"hello":"world"}}'
+```
+
+Run fail-closed fuzzing:
+
+```bash
+python chaos_fuzzer.py --target http://localhost:8080
 ```
 
 ## Environment variables
@@ -99,7 +102,22 @@ curl -X POST http://localhost:8080/mcp \
 
 ## Receipt shape
 
-Receipts are signed JSON payloads using compact JWS with EdDSA:
+Receipts are compact Base64URL tokens:
+
+```text
+base64url(header).base64url(payload).base64url(signature)
+```
+
+Header:
+
+```json
+{
+  "alg": "Ed25519",
+  "typ": "RG1"
+}
+```
+
+Payload:
 
 ```json
 {
@@ -126,6 +144,26 @@ Reality Gate denies by default. A request is rejected when:
 - The upstream server fails.
 
 Each denial is recorded in the JSONL log.
+
+## Files
+
+```text
+reality-gate/
+├── .env.example
+├── .gitignore
+├── README.md
+├── CONTRIBUTING.md
+├── FAQ.md
+├── PITCH_DECK.md
+├── proxy.py
+├── sign_receipt.py
+├── chaos_fuzzer.py
+├── mock_mcp.py
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+└── setup.sh
+```
 
 ## Security posture
 
