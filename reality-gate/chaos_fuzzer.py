@@ -7,22 +7,19 @@ none of them are forwarded as successful upstream calls.
 from __future__ import annotations
 
 import argparse
-import json
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import httpx
-from colorama import Fore, Style, init
-
-init(autoreset=True)
 
 
 @dataclass
 class Case:
     name: str
+    method: str
     headers: Dict[str, str]
-    payload: object
+    payload: object | None
     expected_statuses: set[int]
 
 
@@ -35,28 +32,27 @@ HAIKU = [
 
 def build_cases() -> List[Case]:
     return [
-        Case("missing receipt", {}, {"tool": "demo"}, {401}),
-        Case("garbage receipt", {"X-Reality-Receipt": "not-a-jws"}, {"tool": "demo"}, {403}),
-        Case("empty receipt", {"X-Reality-Receipt": ""}, {"tool": "demo"}, {401}),
-        Case("oversized body", {}, {"x": "A" * 10000}, {401}),
-        Case("json array", {}, ["not", "an", "object"], {401}),
-        Case("method get no receipt", {}, None, {401}),
+        Case("missing receipt", "POST", {}, {"tool": "demo"}, {401}),
+        Case("garbage receipt", "POST", {"X-Reality-Receipt": "not-a-receipt"}, {"tool": "demo"}, {403}),
+        Case("empty receipt", "POST", {"X-Reality-Receipt": ""}, {"tool": "demo"}, {401}),
+        Case("oversized body", "POST", {}, {"x": "A" * 10000}, {401}),
+        Case("json array", "POST", {}, ["not", "an", "object"], {401}),
+        Case("method get no receipt", "GET", {}, None, {401}),
     ]
 
 
 def run_case(client: httpx.Client, target: str, case: Case) -> bool:
     try:
         if case.payload is None:
-            response = client.get(f"{target}/mcp", headers=case.headers)
+            response = client.request(case.method, f"{target}/mcp", headers=case.headers)
         else:
-            response = client.post(f"{target}/mcp", headers=case.headers, json=case.payload)
+            response = client.request(case.method, f"{target}/mcp", headers=case.headers, json=case.payload)
     except httpx.HTTPError as exc:
-        print(f"{Fore.RED}FAIL{Style.RESET_ALL} {case.name}: transport error {exc}")
+        print(f"FAIL {case.name}: transport error {exc}")
         return False
 
     ok = response.status_code in case.expected_statuses
-    color = Fore.GREEN if ok else Fore.RED
-    print(f"{color}{'PASS' if ok else 'FAIL'}{Style.RESET_ALL} {case.name}: HTTP {response.status_code}")
+    print(f"{'PASS' if ok else 'FAIL'} {case.name}: HTTP {response.status_code}")
     return ok
 
 
@@ -87,10 +83,10 @@ def main() -> None:
     print(HAIKU[passed % len(HAIKU)])
 
     if passed == total:
-        print(f"{Fore.GREEN}✅ GATE INTACT – fail-closed held.{Style.RESET_ALL}")
+        print("✅ GATE INTACT – fail-closed held.")
         return
 
-    print(f"{Fore.RED}❌ GATE BREACH – investigate failed checks.{Style.RESET_ALL}")
+    print("❌ GATE BREACH – investigate failed checks.")
     raise SystemExit(1)
 
 
