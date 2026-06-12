@@ -16,13 +16,12 @@ Logging after execution is not governance. Governance starts before execution, a
 
 ## 4. Solution
 
-Reality Gate is a cryptographic proxy that requires every request to carry a signed receipt. The proxy verifies the receipt before forwarding traffic. Invalid, stale, malformed, or missing receipts are denied by default.
+Reality Gate is a cryptographic proxy that requires every request to carry a signed Ed25519 receipt. The proxy verifies the receipt before forwarding traffic. Invalid, stale, malformed, or missing receipts are denied by default.
 
 ## 5. Demo
 
 ```bash
-./setup.sh
-export REALITY_GATE_PUBKEY_B64="paste-public-key-here"
+bash setup.sh
 docker compose up -d
 docker compose --profile test run --rm chaos
 ```
@@ -45,10 +44,11 @@ MCP-style agent architectures are expanding the number of callable tools. The fa
 
 Reality Gate is intentionally narrow. It does not pretend to be a full governance suite. It provides a concrete, testable enforcement point:
 
-- Cryptographic receipt verification.
+- Direct Ed25519 receipt verification.
 - Explicit denial paths.
 - JSONL audit trail.
 - Dockerized demo.
+- POST-capable mock upstream.
 - Chaos fuzzer.
 
 ## 9. Roadmap
