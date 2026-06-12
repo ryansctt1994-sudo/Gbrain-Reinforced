@@ -3,7 +3,10 @@ version: '3.8'
 services:
   mock-mcp:
     image: python:3.11-slim
-    command: python -c "import http.server, socketserver; handler = http.server.SimpleHTTPRequestHandler; httpd = socketserver.TCPServer(('', 5000), handler); httpd.serve_forever()"
+    working_dir: /app
+    volumes:
+      - ./mock_mcp.py:/app/mock_mcp.py:ro
+    command: python mock_mcp.py
     ports:
       - "5000:5000"
 
