@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+.env
+
+# Keys and secrets (never commit)
+keys/
+*.pem
+*_key*
+*_secret*
+
+# Logs
+*.log
+reality_gate.jsonl
+reality_gate_errors.log
+
+# Docker / local
+.dockerignore
+*.pid
